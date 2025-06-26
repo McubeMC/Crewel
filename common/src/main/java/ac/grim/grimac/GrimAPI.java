@@ -64,7 +64,7 @@ public final class GrimAPI {
         if (ReflectionUtils.hasClass("io.papermc.paper.threadedregions.RegionizedServer")) return Platform.FOLIA;
         if (ReflectionUtils.hasClass("org.bukkit.Bukkit")) return Platform.BUKKIT;
         if (ReflectionUtils.hasClass("net.fabricmc.loader.api.FabricLoader")) return Platform.FABRIC;
-        throw new IllegalStateException("Unknown platform!");
+        throw new IllegalStateException("Software inconnue!");
     }
 
     public void load(PlatformLoader platformLoader, Initable... platformSpecificInitables) {
@@ -126,7 +126,7 @@ public final class GrimAPI {
 
     private void checkInitialized() {
         if (!initialized) {
-            throw new IllegalStateException("GrimAPI has not been initialized!");
+            throw new IllegalStateException("Une erreur s'est déclaré lors du lancement de GrimAPI | GrimAPI has not been initialized!");
         }
     }
 

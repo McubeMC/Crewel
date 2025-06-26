@@ -123,7 +123,7 @@ public class GrimExternalAPI implements GrimAbstractAPI, ConfigReloadObserver, S
         try {
             GrimAPI.INSTANCE.getConfigManager().start();
         } catch (Exception e) {
-            LogUtil.error("Failed to start config manager.", e);
+            LogUtil.error("Impossible de démarrer le manager de config.", e);
         }
     }
 
