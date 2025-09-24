@@ -10,12 +10,13 @@ import ac.grim.grimac.manager.SpectateManager;
 import ac.grim.grimac.manager.TickManager;
 import ac.grim.grimac.manager.config.BaseConfigManager;
 import ac.grim.grimac.manager.init.Initable;
+import ac.grim.grimac.manager.violationdatabase.ViolationDatabaseManager;
 import ac.grim.grimac.platform.api.Platform;
 import ac.grim.grimac.platform.api.PlatformLoader;
 import ac.grim.grimac.platform.api.PlatformServer;
 import ac.grim.grimac.platform.api.manager.ItemResetHandler;
 import ac.grim.grimac.platform.api.manager.MessagePlaceHolderManager;
-import ac.grim.grimac.platform.api.manager.ParserDescriptorFactory;
+import ac.grim.grimac.platform.api.manager.CommandAdapter;
 import ac.grim.grimac.platform.api.manager.PermissionRegistrationManager;
 import ac.grim.grimac.platform.api.manager.PlatformPluginManager;
 import ac.grim.grimac.platform.api.player.PlatformPlayerFactory;
@@ -23,6 +24,7 @@ import ac.grim.grimac.platform.api.scheduler.PlatformScheduler;
 import ac.grim.grimac.platform.api.sender.Sender;
 import ac.grim.grimac.platform.api.sender.SenderFactory;
 import ac.grim.grimac.utils.anticheat.PlayerDataManager;
+import ac.grim.grimac.utils.common.GrimArguments;
 import ac.grim.grimac.utils.reflection.ReflectionUtils;
 import lombok.Getter;
 import org.incendo.cloud.CommandManager;
@@ -43,6 +45,7 @@ public final class GrimAPI {
     private final TickManager tickManager;
     private final EventBus eventBus;
     private final GrimExternalAPI externalAPI;
+    private ViolationDatabaseManager violationDatabaseManager;
     private PlatformLoader loader;
     @Getter
     private InitManager initManager;
@@ -61,6 +64,8 @@ public final class GrimAPI {
 
     // the order matters
     private static Platform detectPlatform() {
+        Platform override = Platform.getByName(GrimArguments.PLATFORM_OVERRIDE);
+        if (override != null) return override;
         if (ReflectionUtils.hasClass("io.papermc.paper.threadedregions.RegionizedServer")) return Platform.FOLIA;
         if (ReflectionUtils.hasClass("org.bukkit.Bukkit")) return Platform.BUKKIT;
         if (ReflectionUtils.hasClass("net.fabricmc.loader.api.FabricLoader")) return Platform.FABRIC;
@@ -69,6 +74,7 @@ public final class GrimAPI {
 
     public void load(PlatformLoader platformLoader, Initable... platformSpecificInitables) {
         this.loader = platformLoader;
+        this.violationDatabaseManager = new ViolationDatabaseManager(getGrimPlugin());
         this.initManager = new InitManager(loader.getPacketEvents(), loader::getCommandManager, platformSpecificInitables);
         this.initManager.load();
         this.initialized = true;
@@ -92,8 +98,8 @@ public final class GrimAPI {
         return loader.getPlatformPlayerFactory();
     }
 
-    public ParserDescriptorFactory getParserDescriptors() {
-        return loader.getParserDescriptorFactory();
+    public CommandAdapter getCommandAdapter() {
+        return loader.getCommandAdapter();
     }
 
     public GrimPlugin getGrimPlugin() {

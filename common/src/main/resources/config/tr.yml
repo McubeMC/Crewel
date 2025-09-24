@@ -42,6 +42,11 @@ spectators:
 # Oyuncuların zaman aşımından dolayı sunucudan atılmadan önce ne kadar süreleri olmalı? Varsayılan = 60 saniye
 max-transaction-time: 60
 
+# Enable this to stop Grim cancelling pongs received from players.
+# This may improve compatibility with other anticheats. It may cause issues with packet limiters.
+# Do not enable this if you are not sure what you are doing.
+disable-pong-cancelling: false
+
 # Kopya hareket paketinin iptal edilip edilmemesi gerektiği
 # Mojang bu sorunu 1.21'de çözdü. Bu, "kova senkronizasyonu" sorununu düzeltme girişimiydi. https://bugs.mojang.com/browse/MC-12363
 # Bu ayar yalnızca 1.17-1.20.5 istemcileri için 1.8 sunucularında geçerlidir.
@@ -204,5 +209,21 @@ max-ping-out-of-flying: 1000
 # Bir havai fişek ivmesi oyuncudan çıkarıldığında maksimum ping.
 # Bu, yüksek gecikmeli oyuncuların bir havai fişek ivmesini elytra ile sonsuza kadar kullanmalarını engeller.
 max-ping-firework-boost: 1000
+
+history:
+    enabled: true
+    # /grim history <player> ile her sayfada kaç kayıt gösterilsin
+    entries-per-page: 15
+    # History komutu için eklenecek sunucu adı nedir? Aynı veritabanını birden fazla sunucuda kullanıyorsanız faydalıdır
+    server-name: Prison
+    database:
+        # Yerel saklama için SQLITE, harici MySQL veritabanı için MYSQL kullanın. Sadece sunucu yeniden başlatıldığında güncellenir
+        type: SQLITE
+        # MySQL bağlantı bilgileri
+        host: localhost
+        port: 3306
+        database: grim
+        username: root
+        password: ""
 
 config-version: 9

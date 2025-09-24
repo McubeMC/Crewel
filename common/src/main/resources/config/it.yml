@@ -42,6 +42,11 @@ spectators:
 
 max-transaction-time: 60
 
+# Enable this to stop Grim cancelling pongs received from players.
+# This may improve compatibility with other anticheats. It may cause issues with packet limiters.
+# Do not enable this if you are not sure what you are doing.
+disable-pong-cancelling: false
+
 # Should the duplicate movement packet be cancelled?
 # Mojang has fixed this issue in 1.21. This was their attempt to fix the "bucket desync". https://bugs.mojang.com/browse/MC-12363
 # This setting only applies to 1.17-1.20.5 clients on 1.8 servers.
@@ -182,5 +187,21 @@ max-ping-out-of-flying: 1000
 # Ping massimo quando il boost del fuoco d’artificio viene rimosso dal giocatore.
 # Impedisce ai giocatori con alta latenza di usare all’infinito un solo boost con fuochi d’artificio ed elytra.
 max-ping-firework-boost: 1000
+
+history:
+    enabled: true
+    # Quante voci devono essere mostrate per pagina con /grim history <player>
+    entries-per-page: 15
+    # Quale nome server deve essere inserito per il comando history? Utile se usi lo stesso database per più server
+    server-name: Prison
+    database:
+        # Usa SQLITE per l’archiviazione locale, MYSQL se hai un database MySQL esterno. Aggiornato solo al riavvio del server
+        type: SQLITE
+        # Dettagli di connessione MySQL
+        host: localhost
+        port: 3306
+        database: grim
+        username: root
+        password: ""
 
 config-version: 9

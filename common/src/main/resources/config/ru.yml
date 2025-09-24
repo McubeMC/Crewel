@@ -42,6 +42,11 @@ spectators:
 # Сколько времени должно быть у игроков, пока мы не выкинем их за тайм-аут? По умолчанию = 60 секунд
 max-transaction-time: 60
 
+# Enable this to stop Grim cancelling pongs received from players.
+# This may improve compatibility with other anticheats. It may cause issues with packet limiters.
+# Do not enable this if you are not sure what you are doing.
+disable-pong-cancelling: false
+
 # Should the duplicate movement packet be cancelled?
 # Mojang has fixed this issue in 1.21. This was their attempt to fix the "bucket desync". https://bugs.mojang.com/browse/MC-12363
 # This setting only applies to 1.17-1.20.5 clients on 1.8 servers.
@@ -200,5 +205,21 @@ max-ping-out-of-flying: 1000
 # Максимальный пинг при снятии ускорения фейерверком с игрока.
 # Это предотвращает возможность для игроков с большим пингом бесконечно использовать один фейерверк‑буст с элитрой.
 max-ping-firework-boost: 1000
+
+history:
+    enabled: true
+    # Сколько записей показывать на странице команды /grim history <player>
+    entries-per-page: 15
+    # Какое имя сервера вставлять для команды history? Полезно при использовании одной базы для нескольких серверов
+    server-name: Prison
+    database:
+        # Используйте SQLITE для локального хранения или MYSQL для внешней MySQL‑БД. Изменения применяются после перезапуска сервера
+        type: SQLITE
+        # Параметры подключения MySQL
+        host: localhost
+        port: 3306
+        database: grim
+        username: root
+        password: ""
 
 config-version: 9

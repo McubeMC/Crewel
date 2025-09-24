@@ -22,7 +22,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-@CheckData(name = "RotationPlace")
+@CheckData(name = "RotationPlace", description = "Placed a block while not looking at it")
 public class RotationPlace extends BlockPlaceCheck {
     double flagBuffer = 0; // If the player flags once, force them to play legit, or we will cancel the tick before.
     boolean ignorePost = false;
@@ -33,7 +33,7 @@ public class RotationPlace extends BlockPlaceCheck {
 
     @Override
     public void onBlockPlace(final BlockPlace place) {
-        if (place.getMaterial() == StateTypes.SCAFFOLDING) return;
+        if (place.material == StateTypes.SCAFFOLDING) return;
         if (player.gamemode == GameMode.SPECTATOR)
             return; // you don't send flying packets when spectating entities
         if (player.inVehicle()) return;
@@ -49,7 +49,7 @@ public class RotationPlace extends BlockPlaceCheck {
     // Use post flying because it has the correct rotation, and can't false easily.
     @Override
     public void onPostFlyingBlockPlace(BlockPlace place) {
-        if (place.getMaterial() == StateTypes.SCAFFOLDING) return;
+        if (place.material == StateTypes.SCAFFOLDING) return;
         if (player.gamemode == GameMode.SPECTATOR)
             return; // you don't send flying packets when spectating entities
         if (player.inVehicle()) return;
@@ -72,7 +72,7 @@ public class RotationPlace extends BlockPlaceCheck {
     }
 
     private boolean didRayTraceHit(BlockPlace place) {
-        SimpleCollisionBox box = new SimpleCollisionBox(place.getPlacedAgainstBlockLocation());
+        SimpleCollisionBox box = new SimpleCollisionBox(place.position);
 
         List<Vector3f> possibleLookDirs = new ArrayList<>(Arrays.asList(
                 new Vector3f(player.xRot, player.yRot, 0),

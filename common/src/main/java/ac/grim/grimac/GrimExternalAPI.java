@@ -6,14 +6,12 @@ import ac.grim.grimac.api.alerts.AlertManager;
 import ac.grim.grimac.api.config.ConfigManager;
 import ac.grim.grimac.api.event.EventBus;
 import ac.grim.grimac.api.event.events.GrimReloadEvent;
-import ac.grim.grimac.api.plugin.GrimPluginDescription;
 import ac.grim.grimac.manager.config.ConfigManagerFileImpl;
 import ac.grim.grimac.manager.init.start.StartableInitable;
 import ac.grim.grimac.player.GrimPlayer;
 import ac.grim.grimac.utils.anticheat.LogUtil;
-import ac.grim.grimac.utils.chat.ChatUtil;
+import ac.grim.grimac.utils.anticheat.MessageUtil;
 import ac.grim.grimac.utils.common.ConfigReloadObserver;
-import com.github.retrooper.packetevents.netty.channel.ChannelHelper;
 import lombok.Getter;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.jetbrains.annotations.Nullable;
@@ -72,8 +70,7 @@ public class GrimExternalAPI implements GrimAbstractAPI, ConfigReloadObserver, S
 
     @Override
     public String getGrimVersion() {
-        GrimPluginDescription description = GrimAPI.INSTANCE.getGrimPlugin().getDescription();
-        return description.getVersion();
+        return api.getGrimPlugin().getDescription().getVersion();
     }
 
     @Override
@@ -181,14 +178,12 @@ public class GrimExternalAPI implements GrimAbstractAPI, ConfigReloadObserver, S
         GrimAPI.INSTANCE.getAlertManager().reload(configManager);
         GrimAPI.INSTANCE.getDiscordManager().reload();
         GrimAPI.INSTANCE.getSpectateManager().reload();
+        GrimAPI.INSTANCE.getViolationDatabaseManager().reload();
         // Don't reload players if the plugin hasn't started yet
         if (!started) return;
         // Reload checks for all players
-        for (GrimPlayer grimPlayer : GrimAPI.INSTANCE.getPlayerDataManager().getEntries()) {
-            ChannelHelper.runInEventLoop(grimPlayer.user.getChannel(), () -> {
-                grimPlayer.updatePermissions();
-                grimPlayer.reload(configManager);
-            });
+        for (GrimPlayer player : GrimAPI.INSTANCE.getPlayerDataManager().getEntries()) {
+            player.runSafely(() -> player.reload(configManager));
         }
     }
 
@@ -203,7 +198,7 @@ public class GrimExternalAPI implements GrimAbstractAPI, ConfigReloadObserver, S
         variableReplacements.putIfAbsent("%tps%", user -> String.format("%.2f", GrimAPI.INSTANCE.getPlatformServer().getTPS()));
         variableReplacements.putIfAbsent("%version%", GrimUser::getVersionName);
         // static variables
-        staticReplacements.put("%prefix%", ChatUtil.translateAlternateColorCodes('&', GrimAPI.INSTANCE.getConfigManager().getPrefix()));
+        staticReplacements.put("%prefix%", MessageUtil.translateAlternateColorCodes('&', GrimAPI.INSTANCE.getConfigManager().getPrefix()));
         staticReplacements.putIfAbsent("%grim_version%", getGrimVersion());
     }
 }

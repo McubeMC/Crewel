@@ -6,6 +6,7 @@ plugins {
     grim.`base-conventions`
     grim.`shadow-conventions`
     id("net.minecrell.plugin-yml.bukkit") version "0.6.0"
+    id("xyz.jpenilla.run-paper") version "3.0.0-beta.1"
 }
 
 repositories {
@@ -125,15 +126,22 @@ bukkit {
         }
 
         register("grim.verbose") {
-            description = "Receive verbose alerts for violations. Requires grim.alerts"
+            description = "Receive verbose alerts for violations"
             default = Permission.Default.OP
         }
 
         register("grim.verbose.enable-on-join") {
             description =
-                "Enable verbose alerts on join. Requires grim.alerts and grim.alerts.enable-on-join"
+                "Enable verbose alerts on join"
             default = Permission.Default.FALSE
         }
+
+        register("grim.list") {
+            description =
+                "Shows lists of specific data"
+            default = Permission.Default.FALSE
+        }
+
     }
 }
 
@@ -141,8 +149,14 @@ publishing.publications.create<MavenPublication>("maven") {
     artifact(tasks["shadowJar"])
 }
 
-tasks.shadowJar {
-    manifest {
-        attributes["paperweight-mappings-namespace"] = "mojang"
+tasks {
+    runServer {
+        minecraftVersion("1.21.4")
+    }
+
+    shadowJar {
+        manifest {
+            attributes["paperweight-mappings-namespace"] = "mojang"
+        }
     }
 }

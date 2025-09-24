@@ -20,9 +20,11 @@ import com.github.retrooper.packetevents.protocol.world.BlockFace;
 import com.github.retrooper.packetevents.protocol.world.states.type.StateType;
 import com.github.retrooper.packetevents.util.Vector3d;
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerUpdateAttributes;
+import lombok.experimental.UtilityClass;
 
 import java.util.Optional;
 
+@UtilityClass
 public final class PlayerBaseTick {
 
     public static boolean canEnterPose(GrimPlayer player, Pose pose, double x, double y, double z) {
@@ -102,7 +104,7 @@ public final class PlayerBaseTick {
     // 1.16 eye in water is a tick behind
     // 1.15 eye in water is the most recent result
     private static void updateFluidOnEyes(GrimPlayer player) {
-        player.wasEyeInWater = player.isEyeInFluid(FluidTag.WATER);
+        player.wasEyeInWater = player.fluidOnEyes == FluidTag.WATER;
         player.fluidOnEyes = null;
 
         double d0 = player.lastY + player.getEyeHeight() - 0.1111111119389534D;

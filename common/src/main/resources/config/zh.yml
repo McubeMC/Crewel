@@ -45,6 +45,11 @@ spectators:
 # 玩家超时踢出时间（默认 = 60 秒）
 max-transaction-time: 60
 
+# Enable this to stop Grim cancelling pongs received from players.
+# This may improve compatibility with other anticheats. It may cause issues with packet limiters.
+# Do not enable this if you are not sure what you are doing.
+disable-pong-cancelling: false
+
 # 是否对重复的移动数据包进行撤销?
 # 这可以修复 "bucket desync". https://bugs.mojang.com/browse/MC-12363,不过Mojang已经在1.21修复了这个问题
 # 这仅仅适用于1.8服务器中使用1.17-1.20.5版本的玩家
@@ -207,6 +212,22 @@ max-ping-out-of-flying: 1000
 # 这可以解决高延迟的玩家可以使用鞘翅时一直使用 1 个烟花就可以加速
 # 填写-1则关闭
 max-ping-firework-boost: 1000
+
+history:
+    enabled: true
+    # 使用 /grim history <player> 时每页显示多少条记录
+    entries-per-page: 15
+    # history 指令中插入的服务器名称？如果多个服务器共用同一数据库则很有用
+    server-name: Prison
+    database:
+        # 本地存储使用 SQLITE，外部数据库使用 MYSQL。仅在重启服务器后生效
+        type: SQLITE
+        # MySQL 连接详情
+        host: localhost
+        port: 3306
+        database: grim
+        username: root
+        password: ""
 
 # 不要调整这个
 config-version: 9

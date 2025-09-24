@@ -42,6 +42,11 @@ spectators:
 # Wie lange sollen Spieler Zeit haben, bis wir sie wegen Zeitüberschreitung rauswerfen? Standard = 60 Sekunden
 max-transaction-time: 60
 
+# Enable this to stop Grim cancelling pongs received from players.
+# This may improve compatibility with other anticheats. It may cause issues with packet limiters.
+# Do not enable this if you are not sure what you are doing.
+disable-pong-cancelling: false
+
 # Should the duplicate movement packet be cancelled?
 # Mojang has fixed this issue in 1.21. This was their attempt to fix the "bucket desync". https://bugs.mojang.com/browse/MC-12363
 # This setting only applies to 1.17-1.20.5 clients on 1.8 servers.
@@ -204,5 +209,21 @@ max-ping-out-of-flying: 1000
 # Maximale Latenz, wenn ein Feuerwerks‑Boost vom Spieler entfernt wird.
 # Dies verhindert, dass Spieler mit hoher Latenz einen einzigen Feuerwerks‑Boost mit Elytra unbegrenzt nutzen können.
 max-ping-firework-boost: 1000
+
+history:
+    enabled: true
+    # Wie viele Einträge sollen pro Seite mit /grim history <player> angezeigt werden
+    entries-per-page: 15
+    # Welcher Servername soll für den History‑Befehl eingetragen werden? Nützlich, wenn dieselbe Datenbank für mehrere Server verwendet wird
+    server-name: Prison
+    database:
+        # SQLITE für lokale Speicherung, MYSQL für eine externe MySQL‑Datenbank. Wird nur nach Serverneustart aktualisiert
+        type: SQLITE
+        # MySQL‑Verbindungsdetails
+        host: localhost
+        port: 3306
+        database: grim
+        username: root
+        password: ""
 
 config-version: 9

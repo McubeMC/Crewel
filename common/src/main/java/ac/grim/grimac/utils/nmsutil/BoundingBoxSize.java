@@ -8,6 +8,7 @@ import com.github.retrooper.packetevents.protocol.entity.type.EntityType;
 import com.github.retrooper.packetevents.protocol.entity.type.EntityTypes;
 import com.github.retrooper.packetevents.protocol.player.ClientVersion;
 import com.github.retrooper.packetevents.util.Vector3d;
+import lombok.experimental.UtilityClass;
 
 /**
  * Yeah, I know this is a bad class
@@ -16,6 +17,7 @@ import com.github.retrooper.packetevents.util.Vector3d;
  * I could PR a ton of classes in order to accomplish it but then no one would use it
  * (And even if they did they would likely be breaking my license...)
  */
+@UtilityClass
 public final class BoundingBoxSize {
 
     public static float getWidth(GrimPlayer player, PacketEntity packetEntity) {
@@ -44,6 +46,8 @@ public final class BoundingBoxSize {
             return player.getClientVersion().isNewerThanOrEquals(ClientVersion.V_1_9) ? 1.3964844f : 1.4f;
         } else if (EntityTypes.isTypeInstanceOf(type, EntityTypes.BOAT)) {
             return player.getClientVersion().isNewerThanOrEquals(ClientVersion.V_1_9) ? 1.375f : 1.5f;
+        } else if (EntityTypes.HAPPY_GHAST.equals(type)) {
+            return 4.0f;
         } else if (EntityTypes.CHICKEN.equals(type) || EntityTypes.ENDERMITE.equals(type) || EntityTypes.SILVERFISH.equals(type) || EntityTypes.VEX.equals(type) || EntityTypes.TADPOLE.equals(type)) {
             return 0.4f;
         } else if (EntityTypes.RABBIT.equals(type)) {
@@ -217,6 +221,8 @@ public final class BoundingBoxSize {
             return 0;
         } else if (EntityTypes.isTypeInstanceOf(type, EntityTypes.BOAT)) {
             return -0.1;
+        } else if (EntityTypes.HAPPY_GHAST.equals(type)) {
+            return 0.5;
         } else if (EntityTypes.HOGLIN.equals(type) || EntityTypes.ZOGLIN.equals(type)) {
             return getHeight(player, packetEntity) - (packetEntity.isBaby ? 0.2 : 0.15);
         } else if (EntityTypes.LLAMA.equals(type)) {
@@ -257,6 +263,8 @@ public final class BoundingBoxSize {
             // WHY DOES VIAVERSION OFFSET BOATS? THIS MAKES IT HARD TO SUPPORT, EVEN IF WE INTERPOLATE RIGHT.
             // I gave up and just exempted boats from the reach check and gave up with interpolation for collisions
             return 0.5625f;
+        } else if (EntityTypes.HAPPY_GHAST.equals(type)) {
+            return 4.0f;
         } else if (EntityTypes.CAT.equals(type)) {
             return 0.7f;
         } else if (EntityTypes.CAVE_SPIDER.equals(type)) {

@@ -17,6 +17,7 @@ import com.github.retrooper.packetevents.protocol.entity.data.EntityData;
 import com.github.retrooper.packetevents.protocol.entity.type.EntityType;
 import com.github.retrooper.packetevents.protocol.entity.type.EntityTypes;
 import com.github.retrooper.packetevents.protocol.player.ClientVersion;
+import com.github.retrooper.packetevents.protocol.player.Equipment;
 import com.github.retrooper.packetevents.protocol.player.UserProfile;
 import com.github.retrooper.packetevents.protocol.potion.PotionType;
 import com.github.retrooper.packetevents.protocol.potion.PotionTypes;
@@ -49,7 +50,7 @@ public class CompensatedEntities {
     public boolean hasSprintingAttributeEnabled = false;
     public TrackerData selfTrackedEntity;
     public PacketEntitySelf self;
-    GrimPlayer player;
+    private final GrimPlayer player;
 
     public CompensatedEntities(GrimPlayer player) {
         this.player = player;
@@ -96,6 +97,10 @@ public class CompensatedEntities {
 
     public OptionalInt getPotionLevelForPlayer(PotionType type) {
         return getEntityInControl().getPotionEffectLevel(type);
+    }
+
+    public OptionalInt getPotionLevelForSelfPlayer(PotionType type) {
+        return self.getPotionEffectLevel(type);
     }
 
     public boolean hasPotionEffect(PotionType type) {
@@ -169,7 +174,9 @@ public class CompensatedEntities {
         if (entityType == EntityTypes.ITEM) return;
 
         PacketEntity packetEntity;
-        if (EntityTypes.CAMEL.equals(entityType)) {
+        if (EntityTypes.HAPPY_GHAST.equals(entityType)) {
+            packetEntity = new PacketEntityHappyGhast(player, uuid, entityType, position.getX(), position.getY(), position.getZ(), xRot);
+        } else if (EntityTypes.CAMEL.equals(entityType)) {
             packetEntity = new PacketEntityCamel(player, uuid, entityType, position.getX(), position.getY(), position.getZ(), xRot);
         } else if (EntityTypes.isTypeInstanceOf(entityType, EntityTypes.ABSTRACT_HORSE)) {
             packetEntity = new PacketEntityHorse(player, uuid, entityType, position.getX(), position.getY(), position.getZ(), xRot);
@@ -519,9 +526,19 @@ public class CompensatedEntities {
 
             EntityData<?> guardianByte = WatchableIndexUtil.getIndex(watchableObjects, index);
             if (guardianByte != null) {
-                int info = (Integer) guardianByte.getValue(); // wiki says this is a byte but testing on 1.8 shows its an integer
+                int info = (Integer) guardianByte.getValue(); // wiki says this is a byte but testing on 1.8 shows it's an integer
                 ((PacketEntityGuardian) entity).isElder = (info & isElderlyBitMask) != 0;
             }
         }
     }
+
+    public void updateEntityEquipment(int entityId, List<Equipment> equipment) {
+        PacketEntity entity = player.compensatedEntities.getEntity(entityId);
+        if (entity == null || !entity.trackEntityEquipment) return;
+
+        for (Equipment equipmentItem : equipment) {
+            entity.setItemBySlot(equipmentItem.getSlot(), equipmentItem.getItem());
+        }
+    }
+
 }

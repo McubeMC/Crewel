@@ -1,7 +1,6 @@
 package ac.grim.grimac.utils.anticheat;
 
 import ac.grim.grimac.GrimAPI;
-import ac.grim.grimac.utils.chat.ChatUtil;
 import lombok.experimental.UtilityClass;
 import net.kyori.adventure.text.Component;
 
@@ -32,12 +31,21 @@ public class LogUtil {
         }
     }
 
+    public void error(final Throwable throwable) {
+        Logger logger = getLogger();
+        if (logger != null) {
+            logger.severe(getStackTrace(throwable));
+        } else {
+            throwable.printStackTrace();
+        }
+    }
+
     public Logger getLogger() {
         return GrimAPI.INSTANCE.getGrimPlugin().getLogger();
     }
 
     public void console(final String info) {
-        GrimAPI.INSTANCE.getPlatformServer().getConsoleSender().sendMessage(ChatUtil.translateAlternateColorCodes('&', info));
+        GrimAPI.INSTANCE.getPlatformServer().getConsoleSender().sendMessage(MessageUtil.translateAlternateColorCodes('&', info));
     }
 
     public void console(final Component info) {
