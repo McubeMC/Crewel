@@ -3,24 +3,35 @@ package ac.grim.grimac.utils.anticheat;
 import ac.grim.grimac.GrimAPI;
 import ac.grim.grimac.api.event.events.GrimJoinEvent;
 import ac.grim.grimac.api.event.events.GrimQuitEvent;
+import ac.grim.grimac.manager.datastore.LiveWriteHooks;
+import ac.grim.grimac.manager.datastore.PlayerToggleStore;
 import ac.grim.grimac.player.GrimPlayer;
 import ac.grim.grimac.utils.reflection.GeyserUtil;
 import com.github.retrooper.packetevents.PacketEvents;
 import com.github.retrooper.packetevents.netty.channel.ChannelHelper;
 import com.github.retrooper.packetevents.protocol.player.User;
-import org.checkerframework.checker.nullness.qual.NonNull;
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.Collection;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class PlayerDataManager {
+
+    // Holder — PlayerDataManager is constructed inside GrimAPI's ctor, so a
+    // plain static-final would see a null GrimAPI.INSTANCE. Holder init runs
+    // on first fire, after GrimAPI is fully built.
+    private static final class Channels {
+        static final GrimJoinEvent.Channel JOIN = GrimAPI.INSTANCE.getEventBus().get(GrimJoinEvent.class);
+        static final GrimQuitEvent.Channel QUIT = GrimAPI.INSTANCE.getEventBus().get(GrimQuitEvent.class);
+    }
+
     public final Collection<User> exemptUsers = ConcurrentHashMap.newKeySet();
     private final ConcurrentHashMap<User, GrimPlayer> playerDataMap = new ConcurrentHashMap<>();
 
     @Nullable
-    public GrimPlayer getPlayer(final @NonNull UUID uuid) {
+    public GrimPlayer getPlayer(final @NotNull UUID uuid) {
         // Is it safe to interact with this, or is this internal PacketEvents code?
         Object channel = PacketEvents.getAPI().getProtocolManager().getChannel(uuid);
         User user = PacketEvents.getAPI().getProtocolManager().getUser(channel);
@@ -28,14 +39,14 @@ public class PlayerDataManager {
     }
 
     @Nullable
-    public GrimPlayer getPlayer(final @NonNull User user) {
+    public GrimPlayer getPlayer(final @NotNull User user) {
         @Nullable GrimPlayer player = playerDataMap.get(user);
         if (player != null && player.platformPlayer != null && player.platformPlayer.isExternalPlayer())
             return null;
         return player;
     }
 
-    public boolean shouldCheck(@NonNull User user) {
+    public boolean shouldCheck(@NotNull User user) {
         if (exemptUsers.contains(user)) return false;
         if (!ChannelHelper.isOpen(user.getChannel())) return false;
 
@@ -64,24 +75,37 @@ public class PlayerDataManager {
         return true;
     }
 
-    public void addUser(final @NonNull User user) {
+    public void addUser(final @NotNull User user) {
         if (shouldCheck(user)) {
             GrimPlayer player = new GrimPlayer(user);
             playerDataMap.put(user, player);
-            GrimAPI.INSTANCE.getEventBus().post(new GrimJoinEvent(player));
+            Channels.JOIN.fire(player);
         }
     }
 
-    public GrimPlayer remove(final @NonNull User user) {
+    public GrimPlayer remove(final @NotNull User user) {
         return playerDataMap.remove(user);
     }
 
     public void onDisconnect(User user) {
         GrimPlayer grimPlayer = remove(user);
-        if (grimPlayer != null) GrimAPI.INSTANCE.getEventBus().post(new GrimQuitEvent(grimPlayer));
+        if (grimPlayer != null) Channels.QUIT.fire(grimPlayer);
         exemptUsers.remove(user);
 
         UUID uuid = user.getProfile().getUUID();
+
+        // All cleanup paths should call onDisconnect; routing the session-close + toggle
+        // eviction here means a stuck PE event (or a JVM-level channel
+        // close that doesn't surface as UserDisconnectEvent) doesn't leak an open session.
+        // hooks/toggles are NOOP when the datastore is disabled or its init failed
+        // AND go NOOP mid-session if an operator runs /grim reload after flipping database.enabled to false
+        // a player who joined under the prior (enabled) config and disconnects post-reload has no live writer to fire onQuit, so their session stays open (row closed_at IS NULL).
+        // The next datastore-enabled boot's crash sweep stamps closed_at = last_activity for still-open rows; permanently-disabled-after-the-fact leaves the row untouched until DB is enabled again.
+        GrimAPI.INSTANCE.getDataStoreLifecycle().liveWriteHooks()
+                .onQuitFromUserDisconnect(user, grimPlayer, System.currentTimeMillis());
+        if (uuid != null) {
+            GrimAPI.INSTANCE.getDataStoreLifecycle().playerToggleStore().evict(uuid);
+        }
 
         // Check if calling async is safe
         if (uuid == null)

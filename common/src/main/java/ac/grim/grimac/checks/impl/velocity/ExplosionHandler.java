@@ -27,9 +27,9 @@ import org.jetbrains.annotations.Nullable;
 import java.util.Deque;
 import java.util.LinkedList;
 
-@CheckData(name = "AntiExplosion", configName = "Explosion", setback = 10)
+@CheckData(name = "AntiExplosion", stableKey = "grim.velocity.anti_explosion", configName = "Explosion", setback = 10)
 public class ExplosionHandler extends Check implements PostPredictionCheck {
-    final Deque<VelocityData> firstBreadMap = new LinkedList<>();
+    private final Deque<VelocityData> firstBreadMap = new LinkedList<>();
 
     private VelocityData lastExplosionsKnownTaken = null;
     private VelocityData firstBreadAddedExplosion = null;
@@ -91,8 +91,7 @@ public class ExplosionHandler extends Check implements PostPredictionCheck {
                     }
 
                     // Otherwise try and flip/open it.
-                    final Object poweredValue = state.getInternalData().get(StateValue.POWERED);
-                    final boolean canFlip = (poweredValue != null && !(Boolean) poweredValue) || type == StateTypes.LEVER;
+                    final boolean canFlip = state.hasProperty(StateValue.POWERED) && !state.isPowered() || type == StateTypes.LEVER;
                     if (canFlip) {
                         player.compensatedWorld.tickOpenable(record.x, record.y, record.z);
                     }

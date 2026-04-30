@@ -11,6 +11,8 @@ import ac.grim.grimac.platform.api.player.PlatformPlayer;
 import ac.grim.grimac.player.GrimPlayer;
 import ac.grim.grimac.utils.anticheat.LogUtil;
 import ac.grim.grimac.utils.anticheat.MessageUtil;
+import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
+import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import lombok.RequiredArgsConstructor;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
@@ -25,6 +27,7 @@ public class PunishmentManager implements ConfigReloadable {
     private String alertString;
     private boolean testMode;
     private String proxyAlertString = "";
+    private static final CommandExecuteEvent.Channel COMMAND_CHANNEL = GrimAPI.INSTANCE.getEventBus().get(CommandExecuteEvent.class);
 
     public PunishmentManager(GrimPlayer player) {
         this.player = player;
@@ -131,16 +134,14 @@ public class PunishmentManager implements ConfigReloadable {
                         // Any other number means execute every X interval
                         boolean inInterval = command.interval == 0 ? (command.executeCount == 0) : (violationCount % command.interval == 0);
                         if (inInterval) {
-                            CommandExecuteEvent executeEvent = new CommandExecuteEvent(player, check, verbose, cmd);
-                            GrimAPI.INSTANCE.getEventBus().post(executeEvent);
-                            if (executeEvent.isCancelled()) continue;
+                            if (COMMAND_CHANNEL.fire(player, check, verbose, cmd)) continue;
 
                             switch (command.command) {
                                 case "[webhook]" -> GrimAPI.INSTANCE.getDiscordManager().sendAlert(player, verbose, check.getDisplayName(), vl);
                                 case "[log]" -> {
-                                    int vls = (int) group.violations.values().stream().filter((e) -> e == check).count();
                                     String verboseWithoutGl = verbose.replaceAll(" /gl .*", "");
-                                    GrimAPI.INSTANCE.getViolationDatabaseManager().logAlert(player, verboseWithoutGl, check.getDisplayName(), vls);
+                                    GrimAPI.INSTANCE.getDataStoreLifecycle().liveWriteHooks()
+                                            .recordFlagFromCheck(player, check, vl, verboseWithoutGl);
                                 }
                                 case "[proxy]" -> ProxyAlertMessenger.sendPluginMessage(cmd);
                                 case "[alert]" -> {
@@ -179,7 +180,7 @@ public class PunishmentManager implements ConfigReloadable {
 
                 group.violations.put(currentTime, check);
                 // Remove violations older than the defined time in the config
-                group.violations.entrySet().removeIf(time -> currentTime - time.getKey() > group.removeViolationsAfter);
+                group.violations.long2ObjectEntrySet().removeIf(time -> currentTime - time.getLongKey() > group.removeViolationsAfter);
             }
         }
     }
@@ -197,7 +198,7 @@ public class PunishmentManager implements ConfigReloadable {
 class PunishGroup {
     public final List<AbstractCheck> checks;
     public final List<ParsedCommand> commands;
-    public final Map<Long, Check> violations = new HashMap<>();
+    public final Long2ObjectMap<Check> violations = new Long2ObjectOpenHashMap<>();
     public final int removeViolationsAfter; // time to remove violations after in milliseconds
 }
 

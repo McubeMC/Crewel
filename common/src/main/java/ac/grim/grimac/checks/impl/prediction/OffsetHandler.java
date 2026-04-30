@@ -11,18 +11,19 @@ import ac.grim.grimac.utils.anticheat.update.PredictionComplete;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
-@CheckData(name = "Simulation", decay = 0.02)
+@CheckData(name = "Simulation", stableKey = "grim.prediction.simulation", decay = 0.02)
 public class OffsetHandler extends Check implements PostPredictionCheck {
     private static final AtomicInteger flags = new AtomicInteger(0);
     // Config
-    double setbackDecayMultiplier;
-    double threshold;
-    double immediateSetbackThreshold;
-    double maxAdvantage;
-    double maxCeiling;
-    double setbackViolationThreshold;
+    private double setbackDecayMultiplier;
+    private double threshold;
+    private double immediateSetbackThreshold;
+    private double maxAdvantage;
+    private double maxCeiling;
+    private double setbackViolationThreshold;
     // Current advantage gained
-    double advantageGained = 0;
+    private double advantageGained = 0;
+    private static final CompletePredictionEvent.Channel COMPLETE_CHANNEL = GrimAPI.INSTANCE.getEventBus().get(CompletePredictionEvent.class);
 
     public OffsetHandler(GrimPlayer player) {
         super(player);
@@ -33,10 +34,7 @@ public class OffsetHandler extends Check implements PostPredictionCheck {
 
         double offset = predictionComplete.getOffset();
 
-        CompletePredictionEvent completePredictionEvent = new CompletePredictionEvent(player, this, offset);
-        GrimAPI.INSTANCE.getEventBus().post(completePredictionEvent);
-
-        if (completePredictionEvent.isCancelled()) return;
+        if (COMPLETE_CHANNEL.fire(player, this, offset)) return;
 
         if ((offset >= threshold || offset >= immediateSetbackThreshold)) {
             advantageGained += offset;

@@ -2,10 +2,11 @@ package ac.grim.grimac.command.commands;
 
 import ac.grim.grimac.GrimAPI;
 import ac.grim.grimac.command.BuildableCommand;
+import ac.grim.grimac.platform.api.manager.cloud.CloudCommandAdapter;
 import ac.grim.grimac.platform.api.sender.Sender;
 import ac.grim.grimac.utils.anticheat.LogUtil;
 import ac.grim.grimac.utils.anticheat.MessageUtil;
-import ac.grim.grimac.utils.common.GrimArguments;
+import ac.grim.grimac.utils.common.arguments.CommonGrimArguments;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import lombok.AllArgsConstructor;
@@ -13,10 +14,10 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
-import org.checkerframework.checker.nullness.qual.NonNull;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.incendo.cloud.CommandManager;
 import org.incendo.cloud.context.CommandContext;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -56,7 +57,7 @@ public class GrimVersion implements BuildableCommand {
         try {
             //
             HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(GrimArguments.API_URL + "updates"))
+                    .uri(URI.create(CommonGrimArguments.API_URL.value() + "updates"))
                     .GET()
                     .header("User-Agent", "GrimAC/" + GrimAPI.INSTANCE.getExternalAPI().getGrimVersion())
                     .header("Content-Type", "application/json")
@@ -65,11 +66,11 @@ public class GrimVersion implements BuildableCommand {
 
             HttpResponse<String> response = HTTP_CLIENT.send(request, HttpResponse.BodyHandlers.ofString());
             final int statusCode = response.statusCode();
-            if (statusCode != 200) {
+            if (statusCode < 200 || statusCode >= 300) {
                 Component msg = updateMessage.get();
                 sender.sendMessage(Objects.requireNonNullElseGet(msg, () -> Component.text()
                         .append(MessageUtil.miniMessage("%prefix%"))
-                        .append(Component.text(" Failed to check latest GrimAC version. Update server responded with code: ")
+                        .append(Component.text(" Failed to check latest GrimAC version. Update server responded with status code: ")
                                 .color(NamedTextColor.YELLOW))
                         .append(Component.text(statusCode)
                                 .color(getColorForStatusCode(statusCode))
@@ -136,7 +137,7 @@ public class GrimVersion implements BuildableCommand {
     }
 
     @Override
-    public void register(CommandManager<Sender> commandManager) {
+    public void register(CommandManager<Sender> commandManager, CloudCommandAdapter adapter) {
         commandManager.command(
                 commandManager.commandBuilder("grim", "grimac")
                         .literal("version")
@@ -145,7 +146,7 @@ public class GrimVersion implements BuildableCommand {
         );
     }
 
-    private void handleVersion(@NonNull CommandContext<Sender> context) {
+    private void handleVersion(@NotNull CommandContext<Sender> context) {
         Sender sender = context.sender();
         checkForUpdatesAsync(sender);
     }
@@ -156,9 +157,8 @@ public class GrimVersion implements BuildableCommand {
         AHEAD("ahead"),
         UPDATED("updated"),
         OUTDATED("outdated"),
-        UNKNOWN("unknown")
-        //
-        ;
+        UNKNOWN("unknown");
+
         private final String id;
 
         public static Status getStatus(String id) {
@@ -229,5 +229,4 @@ public class GrimVersion implements BuildableCommand {
             }
         }
     }
-
 }

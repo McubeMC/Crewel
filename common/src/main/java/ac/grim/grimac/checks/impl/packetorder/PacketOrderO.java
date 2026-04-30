@@ -10,7 +10,7 @@ import com.github.retrooper.packetevents.wrapper.play.client.WrapperPlayClientEn
 
 import static com.github.retrooper.packetevents.wrapper.play.client.WrapperPlayClientPlayerFlying.isFlying;
 
-@CheckData(name = "PacketOrderO", experimental = true)
+@CheckData(name = "PacketOrderO", stableKey = "grim.packetorder.tick_end_order", experimental = true)
 public class PacketOrderO extends Check implements PacketCheck {
     public PacketOrderO(final GrimPlayer player) {
         super(player);
@@ -29,9 +29,7 @@ public class PacketOrderO extends Check implements PacketCheck {
             return;
         }
 
-        if (flying && event.getPacketType() != PacketType.Play.Client.KEEP_ALIVE
-                && event.getPacketType() != PacketType.Play.Client.VEHICLE_MOVE
-        ) {
+        if (flying && !isAsync(event.getPacketType()) && event.getPacketType() != PacketType.Play.Client.VEHICLE_MOVE) {
             if (player.inVehicle() && event.getPacketType() == PacketType.Play.Client.ENTITY_ACTION) {
                 WrapperPlayClientEntityAction.Action action = new WrapperPlayClientEntityAction(event).getAction();
                 if (action == WrapperPlayClientEntityAction.Action.START_SPRINTING || action == WrapperPlayClientEntityAction.Action.STOP_SPRINTING) {

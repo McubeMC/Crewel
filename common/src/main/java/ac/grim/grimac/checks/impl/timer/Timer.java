@@ -9,19 +9,19 @@ import com.github.retrooper.packetevents.event.PacketReceiveEvent;
 import com.github.retrooper.packetevents.protocol.packettype.PacketType;
 import com.github.retrooper.packetevents.protocol.packettype.PacketTypeCommon;
 
-@CheckData(name = "Timer", configName = "TimerA", setback = 10)
+@CheckData(name = "Timer", stableKey = "grim.timer.timer", configName = "TimerA", setback = 10)
 public class Timer extends Check implements PacketCheck {
-    long timerBalanceRealTime = 0;
+    protected long timerBalanceRealTime = 0;
 
     // Default value is real time minus max keep-alive time
-    long knownPlayerClockTime = (long) (System.nanoTime() - 6e10);
-    long lastMovementPlayerClock = (long) (System.nanoTime() - 6e10);
+    protected long knownPlayerClockTime = (long) (System.nanoTime() - 6e10);
+    protected long lastMovementPlayerClock = (long) (System.nanoTime() - 6e10);
 
     // How long should the player be able to fall back behind their ping? (nanos)
     // Default: 120 milliseconds
-    long clockDrift;
+    protected long clockDrift;
 
-    boolean hasGottenMovementAfterTransaction = false;
+    protected boolean hasGottenMovementAfterTransaction = false;
 
     // Proof for this timer check
     // https://i.imgur.com/Hk2Wb6c.png

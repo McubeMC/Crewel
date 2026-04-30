@@ -9,7 +9,7 @@ import ac.grim.grimac.utils.anticheat.update.RotationUpdate;
 // Based on Kauri AimA,
 // I also discovered this flaw before open source Kauri, but did not want to open source its detection.
 // It works on clients who % 360 their rotation.
-@CheckData(name = "AimModulo360", decay = 0.005)
+@CheckData(name = "AimModulo360", stableKey = "grim.aim.modulo_360", decay = 0.005)
 public class AimModulo360 extends Check implements RotationCheck {
 
     private float lastDeltaYaw;
@@ -28,7 +28,7 @@ public class AimModulo360 extends Check implements RotationCheck {
             return;
         }
 
-        if (player.xRot < 360 && player.xRot > -360 && Math.abs(rotationUpdate.getDeltaXRot()) > 320 && Math.abs(lastDeltaYaw) < 30) {
+        if (player.yaw < 360 && player.yaw > -360 && Math.abs(rotationUpdate.getDeltaXRot()) > 320 && Math.abs(lastDeltaYaw) < 30) {
             flagAndAlert();
         } else {
             reward();

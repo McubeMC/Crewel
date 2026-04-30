@@ -48,6 +48,7 @@ public class UncertaintyHandler {
     // Marks previous didGroundStatusChangeWithoutPositionPacket from last tick
     public boolean lastPacketWasGroundPacket = false;
     // Slime sucks in terms of bouncing and stuff.  Trust client onGround when on slime
+    public boolean wasSteppingOnSlime = false;
     public boolean isSteppingOnSlime = false;
     public boolean isSteppingOnIce = false;
     public boolean isSteppingOnHoney = false;
@@ -121,6 +122,7 @@ public class UncertaintyHandler {
         isStepMovement = false;
 
         isSteppingNearShulker = false;
+        wasSteppingOnSlime = isSteppingOnSlime;
         wasSteppingOnBouncyBlock = isSteppingOnBouncyBlock;
         isSteppingOnSlime = false;
         isSteppingOnBouncyBlock = false;
@@ -157,12 +159,12 @@ public class UncertaintyHandler {
             Vector3dm maxLocation = new Vector3dm(entityBox.maxX, entityBox.maxY, entityBox.maxZ);
             Vector3dm minLocation = new Vector3dm(entityBox.minX, entityBox.minY, entityBox.minZ);
 
-            Vector3dm diff = minLocation.subtract(new Vector3dm(player.lastX, player.lastY + 0.8 * 1.8, player.lastZ)).multiply(0.1);
+            Vector3dm diff = minLocation.subtract(player.lastX, player.lastY + 0.8 * 1.8, player.lastZ).multiply(0.1);
             fishingRodPullBox.minX = Math.min(0, diff.getX());
             fishingRodPullBox.minY = Math.min(0, diff.getY());
             fishingRodPullBox.minZ = Math.min(0, diff.getZ());
 
-            diff = maxLocation.subtract(new Vector3dm(player.lastX, player.lastY + 0.8 * 1.8, player.lastZ)).multiply(0.1);
+            diff = maxLocation.subtract(player.lastX, player.lastY + 0.8 * 1.8, player.lastZ).multiply(0.1);
             fishingRodPullBox.maxX = Math.max(0, diff.getX());
             fishingRodPullBox.maxY = Math.max(0, diff.getY());
             fishingRodPullBox.maxZ = Math.max(0, diff.getZ());
@@ -177,8 +179,8 @@ public class UncertaintyHandler {
 
         fireworksBox = new SimpleCollisionBox();
 
-        Vector3dm currentLook = ReachUtils.getLook(player, player.xRot, player.yRot);
-        Vector3dm lastLook = ReachUtils.getLook(player, player.lastXRot, player.lastYRot);
+        Vector3dm currentLook = ReachUtils.getLook(player, player.yaw, player.pitch);
+        Vector3dm lastLook = ReachUtils.getLook(player, player.lastYaw, player.lastPitch);
 
         double antiTickSkipping = player.isPointThree() ? 0 : 0.05; // With 0.03, let that handle tick skipping
 
@@ -211,7 +213,7 @@ public class UncertaintyHandler {
     public double getOffsetHorizontal(VectorData data) {
         double threshold = player.getMovementThreshold();
 
-        boolean newVectorPointThree = player.couldSkipTick && data.isKnockback();
+        boolean newVectorPointThree = player.couldSkipTick && data.isKnockback() && !data.isSetbackKb(player);
         boolean explicit003 = data.isZeroPointZeroThree() || lastMovementWasZeroPointZeroThree;
         boolean either003 = newVectorPointThree || explicit003;
 
@@ -252,6 +254,10 @@ public class UncertaintyHandler {
 
     public boolean influencedByBouncyBlock() {
         return isSteppingOnBouncyBlock || wasSteppingOnBouncyBlock;
+    }
+
+    public boolean influencedBySlime() {
+        return isSteppingOnSlime || wasSteppingOnSlime;
     }
 
     public double getVerticalOffset(VectorData data) {

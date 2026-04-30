@@ -1,6 +1,5 @@
 package ac.grim.grimac.checks.impl.velocity;
 
-import ac.grim.grimac.GrimAPI;
 import ac.grim.grimac.api.config.ConfigManager;
 import ac.grim.grimac.checks.Check;
 import ac.grim.grimac.checks.CheckData;
@@ -22,7 +21,7 @@ import java.util.Deque;
 import java.util.LinkedList;
 
 // We are making a velocity sandwich between two pieces of transaction packets (bread)
-@CheckData(name = "AntiKB", alternativeName = "AntiKnockback", configName = "Knockback", setback = 10, decay = 0.025)
+@CheckData(name = "AntiKB", stableKey = "grim.velocity.anti_knockback", alternativeName = "AntiKnockback", configName = "Knockback", setback = 10, decay = 0.025)
 public class KnockbackHandler extends Check implements PostPredictionCheck {
     private final Deque<VelocityData> firstBreadMap = new LinkedList<>();
 
@@ -46,9 +45,6 @@ public class KnockbackHandler extends Check implements PostPredictionCheck {
             WrapperPlayServerEntityVelocity velocity = new WrapperPlayServerEntityVelocity(event);
             int entityId = velocity.getEntityId();
 
-            GrimPlayer player = GrimAPI.INSTANCE.getPlayerDataManager().getPlayer(event.getUser());
-            if (player == null) return;
-
             // Detect whether this knockback packet affects the player or if it is useless
             // Mojang sends extra useless knockback packets for no apparent reason
             if (player.compensatedEntities.serverPlayerVehicle != null && entityId != player.compensatedEntities.serverPlayerVehicle) {
@@ -68,6 +64,8 @@ public class KnockbackHandler extends Check implements PostPredictionCheck {
                 playerVelocity = velocity.getVelocity();
                 event.markForReEncode(true);
             }
+
+            playerVelocity = VectorPrecisionConverter.convert(player.getClientVersion(), playerVelocity);
 
             // Wrap velocity between two transactions
             player.sendTransaction();
