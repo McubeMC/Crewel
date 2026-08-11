@@ -2,6 +2,7 @@ package ac.grim.grimac.predictionengine.movementtick;
 
 import ac.grim.grimac.player.GrimPlayer;
 import ac.grim.grimac.predictionengine.PlayerBaseTick;
+import ac.grim.grimac.predictionengine.blockeffects.PotentSulfurGeyser;
 import ac.grim.grimac.predictionengine.predictions.PredictionEngine;
 import ac.grim.grimac.predictionengine.predictions.PredictionEngineElytra;
 import ac.grim.grimac.utils.collisions.datatypes.SimpleCollisionBox;
@@ -17,10 +18,11 @@ import ac.grim.grimac.utils.nmsutil.EntityTypeTags;
 import ac.grim.grimac.utils.nmsutil.FluidFallingAdjustedMovement;
 import ac.grim.grimac.utils.nmsutil.GetBoundingBox;
 import ac.grim.grimac.utils.nmsutil.MainSupportingBlockPosFinder;
-import ac.grim.grimac.utils.viaversion.ViaVersionUtil;
+import ac.grim.grimac.utils.nmsutil.StuckSpeed;
 import ac.grim.grimac.utils.team.EntityPredicates;
 import ac.grim.grimac.utils.team.EntityTeam;
 import ac.grim.grimac.utils.team.TeamHandler;
+import ac.grim.grimac.utils.viaversion.ViaVersionUtil;
 import com.github.retrooper.packetevents.PacketEvents;
 import com.github.retrooper.packetevents.manager.server.ServerVersion;
 import com.github.retrooper.packetevents.protocol.attribute.Attributes;
@@ -30,10 +32,12 @@ import com.github.retrooper.packetevents.protocol.player.GameMode;
 import com.github.retrooper.packetevents.protocol.potion.PotionTypes;
 import com.github.retrooper.packetevents.protocol.world.states.defaulttags.BlockTags;
 import com.github.retrooper.packetevents.protocol.world.states.type.StateType;
-import com.github.retrooper.packetevents.protocol.world.states.type.StateTypes;
 import com.github.retrooper.packetevents.util.Vector3d;
 import com.viaversion.viaversion.api.Via;
 import lombok.RequiredArgsConstructor;
+
+import java.util.ArrayList;
+import java.util.Set;
 
 @RequiredArgsConstructor
 public class MovementTicker {
@@ -58,7 +62,7 @@ public class MovementTicker {
             playerBox.encompass(GetBoundingBox.getBoundingBoxFromPosAndSize(player, player.x, player.y, player.z, 0.6f, 1.8f).expand(player.getMovementThreshold()));
             playerBox.expand(0.2);
 
-            final TeamHandler teamHandler = player.checkManager.getPacketCheck(TeamHandler.class);
+            final TeamHandler teamHandler = player.checkManager.getCheck(TeamHandler.class);
             final EntityTeam playerTeam = teamHandler != null ? teamHandler.getPlayerTeam() : null;
             for (PacketEntity entity : player.compensatedEntities.entityMap.values()) {
                 // TODO actually handle entity collisions instead of this awfulness
@@ -95,12 +99,40 @@ public class MovementTicker {
         double horizontalLengthSquared = collide.getX() * collide.getX() + collide.getZ() * collide.getZ();
         if (horizontalLengthSquared < 1E-5F) return false;
 
-        float xxa = (float) player.predictedVelocity.input.getX();
-        float zza = (float) player.predictedVelocity.input.getZ();
-
         float yawInRadians = player.yaw * (float) (Math.PI / 180.0);
         double sin = player.trigHandler.sin(yawInRadians);
         double cos = player.trigHandler.cos(yawInRadians);
+
+        Vector3dm input = player.predictedVelocity.input;
+        if (input != null) {
+            return isHorizontalCollisionSoft(collide, horizontalLengthSquared, sin, cos, (float) input.getX(), (float) input.getZ());
+        } else { // elytra
+            ArrayList<VectorData> results = new ArrayList<>();
+            new PredictionEngine().loopVectors(
+                    player,
+                    Set.of(new VectorData(new Vector3dm(), VectorData.VectorType.Normal)),
+                    0,
+                    results,
+                    false
+            );
+
+            for (VectorData data : results) {
+                if (isHorizontalCollisionSoft(
+                        collide, horizontalLengthSquared,
+                        sin, cos,
+                        (float) data.input.getX(), (float) data.input.getZ())) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+    }
+
+    private boolean isHorizontalCollisionSoft(
+            Vector3dm collide, double horizontalLengthSquared,
+            double sin, double cos,
+            float xxa, float zza) {
         double g = xxa * cos - zza * sin;
         double h = zza * cos + xxa * sin;
         double i = g * g + h * h;
@@ -112,27 +144,28 @@ public class MovementTicker {
             player.clientVelocity = new Vector3dm();
         }
 
+        double deltaX = player.clientVelocity.getX(), deltaY = player.clientVelocity.getY(), deltaZ = player.clientVelocity.getZ();
         if (player.getClientVersion().isNewerThanOrEquals(ClientVersion.V_1_18_2)) {
             boolean xAxis = !GrimMath.equal(inputVel.getX(), collide.getX());
             boolean zAxis = !GrimMath.equal(inputVel.getZ(), collide.getZ());
 
             if (xAxis) {
-                player.clientVelocity.setX(0);
+                player.clientVelocity.setX(BlockProperties.getVelocityAfterHorizontalCollision(player, player.clientVelocity.getX()));
             }
 
             if (zAxis) {
-                player.clientVelocity.setZ(0);
+                player.clientVelocity.setZ(BlockProperties.getVelocityAfterHorizontalCollision(player, player.clientVelocity.getZ()));
             }
 
             player.horizontalCollision = xAxis || zAxis;
             player.softHorizontalCollision = player.horizontalCollision && isHorizontalCollisionSoft(collide);
         } else {
             if (inputVel.getX() != collide.getX()) {
-                player.clientVelocity.setX(0);
+                player.clientVelocity.setX(BlockProperties.getVelocityAfterHorizontalCollision(player, player.clientVelocity.getX()));
             }
 
             if (inputVel.getZ() != collide.getZ()) {
-                player.clientVelocity.setZ(0);
+                player.clientVelocity.setZ(BlockProperties.getVelocityAfterHorizontalCollision(player, player.clientVelocity.getZ()));
             }
 
             player.horizontalCollision = inputVel.getX() != collide.getX() || inputVel.getZ() != collide.getZ();
@@ -198,28 +231,10 @@ public class MovementTicker {
 
         // Hack with 1.14+ poses issue
         if (inputVel.getY() != collide.getY()) {
-            // If the client supports slime blocks
-            // And the block is a slime block
-            // Or the block is honey and was replaced by viaversion
-            if (player.getClientVersion().isNewerThanOrEquals(ClientVersion.V_1_8)
-                    && (onBlock == StateTypes.SLIME_BLOCK || (onBlock == StateTypes.HONEY_BLOCK && player.getClientVersion().isOlderThanOrEquals(ClientVersion.V_1_14_4)))) {
-                if (player.isSneaking) { // Slime blocks use shifting instead of sneaking
-                    player.clientVelocity.setY(0);
-                } else {
-                    if (player.clientVelocity.getY() < 0.0) {
-                        player.clientVelocity.setY(-player.clientVelocity.getY() *
-                                (riding != null && !riding.isLivingEntity ? 0.8 : 1.0));
-                    }
-                }
-            } else if (BlockTags.BEDS.contains(onBlock) && player.getClientVersion().isNewerThanOrEquals(ClientVersion.V_1_12)) {
-                if (player.isSneaking) { // Bed blocks use shifting instead of sneaking
-                    player.clientVelocity.setY(0);
-                } else {
-                    if (player.clientVelocity.getY() < 0.0) {
-                        player.clientVelocity.setY(-player.clientVelocity.getY() * 0.6600000262260437 *
-                                (riding != null && !riding.isLivingEntity ? 0.8 : 1.0));
-                    }
-                }
+            float blockRestitution = BlockProperties.getBlockBounceRestitution(onBlock, player);
+            boolean suppressesBounce = player.getClientVersion().isNewerThanOrEquals(ClientVersion.V_26_2) && BlockTags.SUPPRESSES_BOUNCE.contains(onBlock);
+            if (blockRestitution > 0.0F || !suppressesBounce && BlockProperties.getEntityBounciness(player) > 0.0F) {
+                applyBlockBounce(blockRestitution, collide, riding);
             } else {
                 player.clientVelocity.setY(0);
             }
@@ -236,7 +251,7 @@ public class MovementTicker {
             Vector3d from = new Vector3d(player.lastX, player.lastY, player.lastZ);
             Vector3d to = new Vector3d(player.x, player.y, player.z);
 
-            player.addMovementThisTick(new GrimPlayer.Movement(from, to, new Vector3d(inputVel.getX(), inputVel.getY(), inputVel.getZ())));
+            player.addMovementThisTick(new GrimPlayer.Movement(from, to, new Vector3d(deltaX, deltaY, deltaZ)));
         }
 
         // This is where vanilla moves the bounding box and sets it
@@ -254,7 +269,7 @@ public class MovementTicker {
             player.uncertaintyHandler.lastStuckSpeedMultiplier.reset();
         }
 
-        player.stuckSpeedMultiplier = GrimPlayer.DEFAULT_STUCK_SPEED;
+        player.resetStuckSpeedMultiplier();
 
         // 1.15 and older clients use the handleInsideBlocks method for lava
         if (player.getClientVersion().isOlderThan(ClientVersion.V_1_16))
@@ -269,7 +284,7 @@ public class MovementTicker {
 
         // Flying players are not affected by cobwebs/sweet berry bushes
         if (player.isFlying) {
-            player.stuckSpeedMultiplier = GrimPlayer.DEFAULT_STUCK_SPEED;
+            player.stuckSpeedMultiplier = StuckSpeed.NONE;
         }
     }
 
@@ -345,7 +360,7 @@ public class MovementTicker {
             if (player.wasTouchingWater) {
                 float swimSpeed = 0.02F;
                 if (player.depthStriderLevel > 0.0F) {
-                    swimSpeed += (player.speed - swimSpeed) * player.depthStriderLevel / 3.0F;
+                    swimSpeed += (((float) player.speed) - swimSpeed) * player.depthStriderLevel / 3.0F;
                 }
                 playerSpeed = swimSpeed;
             } else if (player.wasTouchingLava) {
@@ -392,6 +407,32 @@ public class MovementTicker {
     public void doNormalMove(float blockFriction) {
     }
 
+    private void applyBlockBounce(float blockRestitution, Vector3dm movement, PacketEntity riding) {
+        if (player.isSneaking) {
+            player.clientVelocity.setY(0);
+            return;
+        }
+
+        double currentY = player.clientVelocity.getY();
+        if (currentY >= 0.0) {
+            return;
+        }
+
+        double restitution = blockRestitution;
+        if (riding != null && !riding.isLivingEntity) {
+            restitution *= 0.8F;
+        }
+
+        if (player.getClientVersion().isOlderThan(ClientVersion.V_26_2)) {
+            player.clientVelocity.setY(-currentY * restitution);
+            return;
+        }
+
+        restitution = Math.max(restitution, BlockProperties.getEntityBounciness(player));
+        player.clientVelocity.setY(BlockProperties.getVelocityAfterVerticalCollision(
+                player, currentY, movement.getY(), restitution));
+    }
+
     public void livingEntityTravel() {
         double playerGravity = !player.inVehicle()
                 ? player.compensatedEntities.self.getAttributeValue(Attributes.GRAVITY)
@@ -430,7 +471,7 @@ public class MovementTicker {
             if (player.depthStriderLevel > 0.0F) {
                 final float divisor = player.getClientVersion().isNewerThanOrEquals(ClientVersion.V_1_21) ? 1.0F : 3.0F;
                 swimFriction += (0.54600006F - swimFriction) * player.depthStriderLevel / divisor;
-                swimSpeed += (player.speed - swimSpeed) * player.depthStriderLevel / divisor;
+                swimSpeed += (((float) player.speed) - swimSpeed) * player.depthStriderLevel / divisor;
             }
 
             if (player.compensatedEntities.getPotionLevelForPlayer(PotionTypes.DOLPHINS_GRACE).isPresent()) {
@@ -470,12 +511,13 @@ public class MovementTicker {
             } else if (player.isGliding) {
                 if (player.getClientVersion().isNewerThanOrEquals(ClientVersion.V_1_21_5) && Collisions.onClimbable(player, player.lastX, player.lastY, player.lastZ)) {
                     float blockFriction = BlockProperties.getFriction(player, player.mainSupportingBlockData, new Vector3d(player.lastX, player.lastY, player.lastZ));
-                    player.friction = player.lastOnGround ? blockFriction * 0.91f : 0.91f;
+                    float airDrag = BlockProperties.getModifiedAirDrag(0.91F, player);
+                    player.friction = player.lastOnGround ? BlockProperties.getModifiedFriction(blockFriction, player) * airDrag : airDrag;
 
                     doNormalMove(blockFriction);
 
                     player.isGliding = false;
-                    player.pointThreeEstimator.updatePlayerGliding(); // TODO: should this be true even if player stopped gliding?
+                    player.pointThreeEstimator.updatePlayerGliding();
                 } else {
                     player.friction = 0.99F; // Not vanilla, just useful for other grim stuff
                     // Set fall distance to 1 if the player’s y velocity is greater than -0.5 when falling
@@ -487,13 +529,15 @@ public class MovementTicker {
                 }
             } else {
                 float blockFriction = BlockProperties.getFriction(player, player.mainSupportingBlockData, new Vector3d(player.lastX, player.lastY, player.lastZ));
-                player.friction = player.lastOnGround ? blockFriction * 0.91f : 0.91f;
+                float airDrag = BlockProperties.getModifiedAirDrag(0.91F, player);
+                player.friction = player.lastOnGround ? BlockProperties.getModifiedFriction(blockFriction, player) * airDrag : airDrag;
 
                 doNormalMove(blockFriction);
             }
         }
 
         Collisions.applyEffectsFromBlocks(player);
+        PotentSulfurGeyser.launchEntityTicker(player, player.clientVelocity, true);
     }
 
     private boolean canFloatWhileRidden() {

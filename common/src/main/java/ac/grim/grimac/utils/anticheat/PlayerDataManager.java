@@ -4,6 +4,8 @@ import ac.grim.grimac.GrimAPI;
 import ac.grim.grimac.api.event.events.GrimJoinEvent;
 import ac.grim.grimac.api.event.events.GrimQuitEvent;
 import ac.grim.grimac.player.GrimPlayer;
+import ac.grim.grimac.platform.api.player.PlatformPlayer;
+import ac.grim.grimac.platform.api.player.PlatformPlayerCache;
 import ac.grim.grimac.utils.reflection.GeyserUtil;
 import com.github.retrooper.packetevents.PacketEvents;
 import com.github.retrooper.packetevents.netty.channel.ChannelHelper;
@@ -47,7 +49,9 @@ public class PlayerDataManager {
     public GrimPlayer getPlayer(final @NotNull UUID uuid) {
         // Is it safe to interact with this, or is this internal PacketEvents code?
         Object channel = PacketEvents.getAPI().getProtocolManager().getChannel(uuid);
+        if (channel == null) return null;
         User user = PacketEvents.getAPI().getProtocolManager().getUser(channel);
+        if (user == null) return null;
         return getPlayer(user);
     }
 
@@ -124,9 +128,10 @@ public class PlayerDataManager {
         if (uuid == null)
             return; // folia doesn't like null getPlayer()
 
-        GrimAPI.INSTANCE.getAlertManager().handlePlayerQuit(
-                GrimAPI.INSTANCE.getPlatformPlayerFactory().getFromUUID(uuid)
-        );
+        PlatformPlayer quittingPlayer = PlatformPlayerCache.getInstance().getPlayer(uuid);
+        if (quittingPlayer != null) {
+            GrimAPI.INSTANCE.getAlertManager().handlePlayerQuit(quittingPlayer);
+        }
 
         GrimAPI.INSTANCE.getSpectateManager().onQuit(uuid);
 
